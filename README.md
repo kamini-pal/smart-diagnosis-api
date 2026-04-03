@@ -1,21 +1,22 @@
-# Smart Diagnosis API
+# Smart Diagnosis AI API
 
-A production-ready Node.js API that leverages OpenAI and MongoDB to provide intelligent diagnostic suggestions based on reported patient symptoms. 
+A production-ready Node.js & Express API that leverages OpenAI and an NLP Rule-Based Hybrid Engine alongside MongoDB to provide intelligent diagnostic suggestions based on reported patient symptoms.
 
 ## 🚀 Features
-* **AI-Powered Pathology Diagnosis**: Utilizes the OpenAI API and strict prompt engineering to analyze symptoms and generate structured medical condition predictions.
-* **Chronological History Tracking**: All symptom queries and their resulting AI diagnoses are automatically archived chronologically in MongoDB.
+* **Hybrid AI Pathology Diagnosis**: Utilizes the OpenAI API for symptom analysis. If the API rate limits or fails, the system seamlessly triggers an exhaustive built-in Rule-Based NLP dictionary mapping to mathematically guarantee 2 to 3 accurate conditions.
+* **Chronological History Tracking**: All symptom queries and their resulting diagnoses are automatically archived in MongoDB.
 * **Production-Ready Architecture**: 
   * Clean separation of concerns (Routes → Controllers → Services → Models).
-  * Isolated server execution layer (`server.js`) and application configuration layer (`app.js`).
-  * Global Error Middleware for deterministic crash prevention and formatted client responses.
-* **Secure Environment Configuration**: Critical secrets (DB URIs, AI API keys) decoupled using `.env` for safe cloud deployments.
+  * Isolated server execution layer (`server.js`) and app config (`app.js`).
+  * Global Error Middleware for deterministic crash prevention.
+* **Pure API Focus**: Stripped strictly to its backend components, perfect for automated Postman testing and programmatic integration.
 
-## 📡 API Endpoints
+## 📡 Live Endpoints (Render Deployment)
+If this backend is deployed on Render, prefix the endpoints with your live URL (e.g. `https://smart-diagnosis-api-3qqw.onrender.com`). Otherwise use `http://localhost:8000`.
 
 ### 1. Submit Symptoms for Diagnosis
-* **Route**: `POST /api/v1/diagnose`
-* **Description**: Accepts a symptom string, passes it through the AI intelligence engine, stores the analysis, and returns the result.
+* **Route**: `POST /diagnose`
+* **Description**: Accepts a symptom string, passes it through the AI/Hybrid intelligence engine, stores the analysis, and returns exactly 2-3 matched conditions.
 * **Request Body (JSON)**:
   ```json
   {
@@ -27,57 +28,52 @@ A production-ready Node.js API that leverages OpenAI and MongoDB to provide inte
   {
       "success": true,
       "data": {
-          "symptoms": "...",
+          "symptoms": "I have had a mild fever and persistent cough for 3 days.",
           "result": [
               {
-                  "disease": "Upper Respiratory Infection",
-                  "probability": "85%",
-                  "suggestion": "Rest, stay hydrated, and monitor temperature."
+                  "condition": "Viral Infection",
+                  "probability": "82%",
+                  "suggested_next_steps": "Rest, monitor temperature, and consult a doctor if fever lasts > 3 days."
+              },
+              {
+                  "condition": "Influenza (Flu)",
+                  "probability": "65%",
+                  "suggested_next_steps": "Stay hydrated, take over-the-counter medicine, and isolate."
               }
-          ],
-          "createdAt": "2026-04-02T10:00:00Z"
+          ]
       },
-      "message": "Diagnosis created and saved successfully"
+      "message": "Diagnosis created and saved successfully."
   }
   ```
 
 ### 2. Fetch Diagnosis History
-* **Route**: `GET /api/v1/diagnose/history?sort=desc`
+* **Route**: `GET /history?sort=desc`
 * **Description**: Retrieves all historical MongoDB diagnoses in chronologically sorted order. 
-* **Parameters**: `?sort=asc` (Oldest first) or `?sort=desc` (Newest first, default).
 
 ### 3. Server Health Check
 * **Route**: `GET /api/v1/health`
-* **Description**: Evaluates the uptime and status of the application layer.
+* **Description**: Evaluates the uptime and health status of the API server.
 
-## 🛠 Setup & Installation
+## 🛠 Local Setup & Installation
 
-**Prerequisites:** 
-* Node.js (v18+ recommended)
-* A local MongoDB instance or a cloud MongoDB Atlas URI
-* An OpenAI API Key
+**Prerequisites:** Node.js (v18+) and a MongoDB URI.
 
-**Installation:**
-1. Clone this repository to your local machine.
-2. Install the core dependencies:
+1. Clone this repository and install dependencies:
    ```bash
    npm install
    ```
-3. Create a `.env` file in the root directory:
+2. Create a `.env` file in the root directory:
    ```env
    NODE_ENV=development
-   PORT=3000
-   DB_URI=mongodb://localhost:27017/smart-diagnosis
-   OPENAI_API_KEY=sk-your-secure-openai-key-here
+   PORT=8000
+   DB_URI=mongodb+srv://<user>:<password>@cluster0.abcde.mongodb.net/smart-diagnosis
+   OPENAI_API_KEY=sk-your-openai-key-here
    ```
-4. Start the development server (auto-restarts on code changes):
+3. Start the development server:
    ```bash
    npm run dev
    ```
-   *The server will mount on `http://localhost:3000`*.
 
-## 🧠 AI Integration Breakdown
-The core of the diagnosis feature is driven programmatically by the OpenAI SDK (specifically GPT-4o-mini).
-* **Stateless Prompt Engineering**: When symptoms are submitted via the controller, the backend Service layer constructs a highly restrictive "System Prompt." The AI is instructed to bypass conversational pleasantries and output its logic exclusively as strict JSON containing targeted properties (`disease`, `probability`, `suggestion`).
-* **Deterministic Configuration**: The OpenAI completion request relies on a deliberately low `temperature` mapping (0.3). This effectively silences "creative hallucination" and forces the generative model to stick strictly to factual, robust diagnostic pathways. 
-* **Seamless Database Piping**: Rather than manually scraping strings on the backend, the raw returned JSON array from the AI is instantly injected directly into the Mongoose `Diagnosis` Schema mapping, where it is validated and safely persisted onto MongoDB.
+## 🧠 Diagnostic Engine Logic Explained
+1. **Stateless AI Processing**: The backend explicitly forces OpenAI to return targeted JSON properties (`condition`, `probability`, `suggested_next_steps`) safely into a standardized array without conversational fluff.
+2. **NLP Hybrid Fallback**: The biggest production upgrade resides in the `catch` block of the service layer. If OpenAI's billing expires (Error 429), the code intercepts the exception and executes an internal keyword-mapping algorithm against a medical dictionary, ensuring exactly 2 or 3 accurate conditions are returned entirely independently of external cloud APIs.

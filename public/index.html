@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Diagnosis AI</title>
+    <!-- Modern Clean Minimalist Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 2rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh;}
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem; }
+        p.subtitle { color: var(--text-light); }
+        .container { background: var(--surface); width: 100%; max-width: 800px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); padding: 2rem; margin-bottom: 2rem;}
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+        textarea { width: 100%; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; resize: vertical; min-height: 120px; outline: none; transition: border-color 0.2s;}
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        button { background: var(--primary); color: white; border: none; padding: 1rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; width: 100%; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .results-section { margin-top: 2rem; display: none;}
+        .result-card { background: var(--primary-light); border: 1px solid #bfdbfe; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; text-align: left; }
+        .result-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #bfdbfe; padding-bottom: 0.5rem; }
+        .condition { font-size: 1.25rem; font-weight: 700; color: #1e40af;}
+        .probability { background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; }
+        .label-text { font-weight: 600; color: #1e3a8a; margin-bottom: 0.25rem; display: block;}
+        
+        .history-btn { background: white; color: var(--text-light); border: 1px solid var(--border); margin-top: 1rem; }
+        .history-btn:hover { background: var(--bg); }
+        .loader { display: none; text-align: center; margin-top: 1rem; color: var(--text-light); font-weight: 500; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Smart Diagnosis Expert AI</h1>
+        <p class="subtitle">Enter your symptoms to instantly get medical conditions, probabilities, and next steps.</p>
+    </header>
+
+    <div class="container">
+        <div class="form-group">
+            <label for="symptoms">Describe your exact symptoms in detail:</label>
+            <textarea id="symptoms" placeholder="Example: I've had a severe headache, mild fever, and nausea for the past 2 days after returning from a camping trip..."></textarea>
+        </div>
+        <button id="btn-diagnose" onclick="submitDiagnosis()">Analyze Medical Symptoms</button>
+        <div class="loader" id="loader">Processing data securely through AI Intelligence Engine...</div>
+
+        <div id="results" class="results-section">
+            <h3>Diagnostic Predications</h3>
+            <p style="color:red; font-size: 0.8rem; margin-bottom: 1rem;">Disclaimer: AI analysis is not a substitute for professional medical advice.</p>
+            <div id="cards-container"></div>
+        </div>
+    </div>
+
+    <!-- DB History Tracking Visualization -->
+    <div class="container" style="text-align: center;">
+        <button class="history-btn" onclick="fetchHistory()">View Database Output History</button>
+        <div id="history-table-container" style="display: none; text-align: left; overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date Processed</th>
+                        <th>Symptoms Input</th>
+                        <th>Conditions Diagnosed</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function submitDiagnosis() {
+            const symInput = document.getElementById('symptoms').value;
+            if(!symInput) return alert("Please enter your symptoms first!");
+
+            document.getElementById('btn-diagnose').disabled = true;
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('cards-container').innerHTML = '';
+
+            try {
+                // Post directly to our newly created /diagnose backend endpoint!
+                const response = await fetch('/diagnose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symptoms: symInput })
+                });
+                
+                const data = await response.json();
+                
+                if(data.success) {
+                    const results = data.data.result;
+                    let html = '';
+                    results.forEach(res => {
+                        html += `
+                        <div class="result-card">
+                            <div class="result-title">
+                                <span class="condition">${res.condition}</span>
+                                <span class="probability">${res.probability}</span>
+                            </div>
+                            <span class="label-text">Suggested Next Steps / Doctor:</span>
+                            <p>${res.suggested_next_steps}</p>
+                        </div>`;
+                    });
+                    document.getElementById('cards-container').innerHTML = html;
+                    document.getElementById('results').style.display = 'block';
+                } else {
+                    alert('Error from API: ' + data.error.message);
+                }
+            } catch (err) {
+                alert('Connection Error occurred. Please verify backend is running.');
+            } finally {
+                document.getElementById('btn-diagnose').disabled = false;
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                // Poll our MongoDB History tracking /history GET endpoint
+                const response = await fetch('/history?sort=desc');
+                const data = await response.json();
+                
+                if(data.success) {
+                    let html = '';
+                    data.data.forEach(item => {
+                        const date = new Date(item.createdAt).toLocaleString();
+                        const conditions = item.result.map(r => r.condition).join(', ');
+                        html += `<tr>
+                            <td>${date}</td>
+                            <td>${item.symptoms.substring(0, 45)}...</td>
+                            <td>${conditions}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('history-body').innerHTML = html;
+                    document.getElementById('history-table-container').style.display = 'block';
+                }
+            } catch (err) {
+                alert("Failed to fetch database history");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -12,16 +12,13 @@ const app = express();
 const path = require('path');
 
 // Set up middlewares - Helmet for security headers, Cors for cross-origin, Morgan for logging
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false })); // Disabled CSP temporarily to allow inline HTML UI scripts to execute
 app.use(cors());
 app.use(morgan('dev'));
 
 // Body Parser Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve frontend UI static files
-app.use(express.static(path.join(__dirname, '../public')));
 
 // Setup routes
 app.use('/api/v1/health', healthRoutes);

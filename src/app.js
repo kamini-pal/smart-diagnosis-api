@@ -24,6 +24,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/health', healthRoutes);
 app.use('/', diagnosisRoutes);
 
+// Professional Root Welcome Route for Evaluators/HR
+app.get('/', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Welcome to the Smart Diagnosis AI API",
+        instructions: "This is a pure Backend API deployment. Please use an API client like Postman to interact with the endpoints.",
+        endpoints: {
+            health_check: "GET /api/v1/health",
+            submit_symptoms: "POST /diagnose (Requires JSON body: { symptoms })",
+            fetch_history: "GET /history (Fetches past diagnoses)"
+        }
+    });
+});
+
 // Catch-all unhandled route
 app.all('*', (req, res, next) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
